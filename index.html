@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Interview — Sansthacentre</title>
+
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f12;color:#eee;min-height:100vh;padding:24px 16px}
+.wrap{max-width:720px;margin:0 auto}
+h1{font-size:22px;font-weight:600;letter-spacing:-.3px;margin-bottom:4px}
+.sub{color:#777;font-size:14px;margin-bottom:20px}
+.welcome{background:#1c1c24;border:1px solid #2a2a35;border-radius:10px;padding:14px 18px;font-size:14px;line-height:1.6;color:#bbb;margin-bottom:18px}
+
+/* Candidate info */
+.info-form{background:#1c1c24;border:1px solid #2a2a35;border-radius:12px;padding:18px;margin-bottom:18px}
+.info-form h3{font-size:14px;font-weight:500;color:#ccc;margin-bottom:12px}
+.irow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.irow1{margin-bottom:12px}
+label{font-size:12px;color:#777;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+input[type=text],input[type=email],input[type=tel]{
+  width:100%;padding:10px 14px;border-radius:8px;border:1px solid #2a2a35;
+  font-size:14px;background:#111118;color:#eee;font-family:inherit;outline:none}
+input:focus{border-color:#4a6cf7}
+
+/* Video */
+.vb{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9;margin-bottom:12px;border:1px solid #222}
+video{width:100%;height:100%;object-fit:cover;display:block}
+.rbadge{position:absolute;top:12px;left:12px;background:#e33;color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;display:none;align-items:center;gap:6px}
+.rdot{width:8px;height:8px;background:#fff;border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.vtimer{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.8);color:#fff;font-size:13px;padding:5px 11px;border-radius:8px;font-family:monospace}
+
+/* Controls */
+.ctrls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+button{padding:10px 22px;border-radius:8px;border:none;font-size:14px;cursor:pointer;font-weight:500;font-family:inherit;transition:opacity .15s}
+button:hover{opacity:.85}
+button:disabled{opacity:.35;cursor:not-allowed}
+.bc{background:#2a2a38;color:#ccc}
+.bs{background:#1e6b2e;color:#fff}
+.be{background:#b02a2a;color:#fff}
+.bem{background:#4a6cf7;color:#fff;width:100%;padding:14px;font-size:15px;margin-top:4px;border-radius:10px}
+
+/* Status */
+.st{font-size:13px;color:#888;text-align:center;padding:9px 14px;background:#111118;border-radius:8px;margin-bottom:12px;line-height:1.5}
+.st.ok{color:#4caf50;background:#0d1f10}
+.st.err{color:#f44;background:#1f0d0d}
+.st.info{color:#8ba4ff;background:#0d1020}
+
+/* Questions */
+.qs{margin-top:6px;margin-bottom:16px}
+.qs h3{font-size:13px;font-weight:500;color:#777;margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px}
+.qi{display:flex;gap:10px;background:#1c1c24;border-radius:8px;padding:11px 14px;margin-bottom:7px;font-size:14px;color:#ccc}
+.qn{font-size:11px;font-weight:700;color:#4a6cf7;min-width:26px;padding-top:2px}
+
+/* Upload progress */
+.prog-wrap{background:#111118;border-radius:8px;padding:16px;margin-bottom:12px;display:none}
+.prog-label{font-size:13px;color:#888;margin-bottom:8px}
+.prog-bar-bg{background:#222;border-radius:99px;height:6px;overflow:hidden}
+.prog-bar{background:#4a6cf7;height:6px;border-radius:99px;width:0%;transition:width .3s}
+
+/* Done card */
+.done-card{background:#0d1f10;border:1px solid #2a4a2a;border-radius:12px;padding:20px;display:none;text-align:center;margin-top:12px}
+.done-card .tick{font-size:40px;margin-bottom:10px}
+.done-card h2{font-size:18px;font-weight:600;color:#4caf50;margin-bottom:6px}
+.done-card p{font-size:14px;color:#888;line-height:1.6}
+
+/* Config notice */
+.cfg-notice{background:#1a1208;border:1px solid #3a2a10;border-radius:10px;padding:16px;margin-bottom:20px}
+.cfg-notice h3{font-size:14px;font-weight:600;color:#f5a623;margin-bottom:8px}
+.cfg-notice p{font-size:13px;color:#aaa;line-height:1.6;margin-bottom:6px}
+.cfg-notice code{background:#111;padding:2px 7px;border-radius:4px;font-family:monospace;font-size:12px;color:#f5a623}
+
+/* Steps in config */
+.cstep{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.csn{width:22px;height:22px;border-radius:50%;background:#3a2a10;border:1px solid #5a4020;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#f5a623;flex-shrink:0;margin-top:1px}
+.cst{font-size:13px;color:#aaa;line-height:1.5}
+.cst a{color:#4a6cf7;text-decoration:none}
+.cst code{background:#111;padding:1px 6px;border-radius:4px;font-size:12px;font-family:monospace;color:#f5a623}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ⚠️ CONFIG NOTICE — IS SECTION KO SETUP KE BAAD HATAO -->
+  <div class="cfg-notice" id="cfgNotice">
+    <h3>⚙️ Ek Baar Setup Zaroori Hai — EmailJS</h3>
+    <p>Neeche teen jagah apni EmailJS details bharo, phir yeh notice wali line hata do:</p>
+    <div class="cstep"><div class="csn">1</div><div class="cst"><a href="https://emailjs.com" target="_blank">emailjs.com</a> pe free account banao → <b>Email Services</b> → Gmail connect karo → <b>Service ID</b> copy karo</div></div>
+    <div class="cstep"><div class="csn">2</div><div class="cst"><b>Email Templates</b> → New Template → Subject: <code>Interview Recording — {{candidate_name}}</code> → Body mein <code>{{message}}</code> daalo → Template ID copy karo</div></div>
+    <div class="cstep"><div class="csn">3</div><div class="cst">Account → <b>API Keys</b> → Public Key copy karo</div></div>
+    <div class="cstep"><div class="csn">4</div><div class="cst">Is file ko Notepad/VS Code mein kholo → neeche <code>YOUR_PUBLIC_KEY</code>, <code>YOUR_SERVICE_ID</code>, <code>YOUR_TEMPLATE_ID</code> replace karo</div></div>
+  </div>
+
+  <h1>🎥 Video Interview</h1>
+  <div class="sub">Sansthacentre — sansthacentre@gmail.com</div>
+
+  <div class="welcome">
+    Namaste! Hamare video interview mein aapka swagat hai.<br>
+    Apna naam bharein, camera start karein, phir recording shuru karein.<br>
+    Recording band karne ke baad <b>automatic email</b> ho jaayegi — kuch aur nahi karna.
+  </div>
+
+  <!-- Candidate Info -->
+  <div class="info-form">
+    <h3>📋 Aapki Jaankari</h3>
+    <div class="irow">
+      <div><label>Aapka Naam *</label><input type="text" id="cName" placeholder="Pura naam likhein" /></div>
+      <div><label>Phone Number</label><input type="tel" id="cPhone" placeholder="10 digit" /></div>
+    </div>
+    <div class="irow1">
+      <label>Aap Kis Post Ke Liye Apply Kar Rahe Hain</label>
+      <input type="text" id="cPost" placeholder="e.g. Office Assistant, Teacher..." />
+    </div>
+  </div>
+
+  <!-- Video -->
+  <div class="vb">
+    <video id="vid" autoplay muted playsinline></video>
+    <div class="rbadge" id="rb"><div class="rdot"></div> REC</div>
+    <div class="vtimer" id="vt">00:00</div>
+  </div>
+
+  <div class="st info" id="st">Pehle apna naam bharo, phir camera shuru karein</div>
+
+  <!-- Controls -->
+  <div class="ctrls">
+    <button class="bc" id="camBtn" onclick="startCam()">📷 Camera Shuru Karein</button>
+    <button class="bs" id="recBtn" onclick="startRec()" disabled>⏺ Recording Shuru</button>
+    <button class="be" id="stopBtn" onclick="stopRec()" disabled>⏹ Band Karo & Email Bhejo</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="prog-wrap" id="progWrap">
+    <div class="prog-label" id="progLabel">Email bheja ja raha hai... kripya ruko</div>
+    <div class="prog-bar-bg"><div class="prog-bar" id="progBar"></div></div>
+  </div>
+
+  <!-- Questions -->
+  <div class="qs">
+    <h3>Interview Questions</h3>
+    <div class="qi"><span class="qn">Q1</span><span>Apne aap ke baare mein batayein — naam, shiksha aur kaam ka anubhav.</span></div>
+    <div class="qi"><span class="qn">Q2</span><span>Aap is sanstha mein kyon kaam karna chahte hain?</span></div>
+    <div class="qi"><span class="qn">Q3</span><span>Aapki koi badi uplabdhi jo aapko yaad ho.</span></div>
+    <div class="qi"><span class="qn">Q4</span><span>Aap apni sabse badi kamzori kya samajhte hain?</span></div>
+    <div class="qi"><span class="qn">Q5</span><span>Koi sawaal jo aap hamare baare mein poochna chahein.</span></div>
+  </div>
+
+  <!-- Done -->
+  <div class="done-card" id="doneCard">
+    <div class="tick">✅</div>
+    <h2>Interview Complete!</h2>
+    <p>Aapki recording sansthacentre@gmail.com ko bhej di gayi hai.<br>
+    Hum jald hi aapse sampark karenge. Dhanyavaad!</p>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  ⬇️  YAHAN APNI EMAILJS DETAILS BHARO
+// ============================================================
+const EMAILJS_PUBLIC_KEY  = 'pWkJpisnkVWl3bvgT';
+const EMAILJS_SERVICE_ID  = 'service_rvm74y5';
+const EMAILJS_TEMPLATE_ID = 'template_mfu0kl3';
+const TO_EMAIL            = 'sansthacentre@gmail.com';
+const MAX_SECONDS         = 30 * 60; // 30 minutes max
+// ============================================================
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+let stream = null, mr = null, chunks = [], timer = null, secs = 0;
+
+function setStatus(msg, type='') {
+  const el = document.getElementById('st');
+  el.textContent = msg;
+  el.className = 'st ' + type;
+}
+
+async function startCam() {
+  const name = document.getElementById('cName').value.trim();
+  if (!name) { setStatus('⚠️ Pehle apna naam bharo!', 'err'); return; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('vid').srcObject = stream;
+    document.getElementById('recBtn').disabled = false;
+    document.getElementById('camBtn').textContent = '✅ Camera Active';
+    setStatus('Camera chal raha hai — Recording shuru karein', 'info');
+  } catch(e) {
+    setStatus('❌ Camera access nahi mili: ' + e.message, 'err');
+  }
+}
+
+function startRec() {
+  if (!stream) return;
+  chunks = [];
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+    ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+  mr = new MediaRecorder(stream, { mimeType: mime });
+  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  mr.onstop = handleStop;
+  mr.start(1000);
+  secs = 0;
+  timer = setInterval(() => {
+    secs++;
+    const m = String(Math.floor(secs/60)).padStart(2,'0');
+    const s = String(secs % 60).padStart(2,'0');
+    document.getElementById('vt').textContent = m + ':' + s;
+    setStatus('⏺ Recording chal rahi hai: ' + m + ':' + s, 'info');
+    if (secs >= MAX_SECONDS) stopRec();
+  }, 1000);
+  document.getElementById('rb').style.display = 'flex';
+  document.getElementById('recBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  setStatus('⏺ Recording shuru ho gayi!', 'info');
+}
+
+function stopRec() {
+  if (mr && mr.state !== 'inactive') mr.stop();
+  clearInterval(timer);
+  document.getElementById('rb').style.display = 'none';
+  document.getElementById('stopBtn').disabled = true;
+  setStatus('Recording process ho rahi hai...', 'info');
+}
+
+async function handleStop() {
+  const blob = new Blob(chunks, { type: 'video/webm' });
+
+  // Also download locally as backup
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = document.getElementById('cName').value.trim() || 'candidate';
+  a.href = url;
+  a.download = 'interview_' + name.replace(/\s+/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.webm';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+  // Send via EmailJS
+  await sendEmail(blob, name);
+}
+
+async function sendEmail(blob, candidateName) {
+  const pw = document.getElementById('progWrap');
+  const pb = document.getElementById('progBar');
+  const pl = document.getElementById('progLabel');
+  pw.style.display = 'block';
+
+  // Animate progress bar
+  let pct = 0;
+  const prog = setInterval(() => {
+    pct = Math.min(pct + 2, 90);
+    pb.style.width = pct + '%';
+  }, 200);
+
+  try {
+    // Convert blob to base64
+    pl.textContent = 'File taiyaar ho rahi hai...';
+    const base64 = await blobToBase64(blob);
+
+    pl.textContent = 'Email bheja ja raha hai...';
+
+    const phone = document.getElementById('cPhone').value.trim() || 'N/A';
+    const post  = document.getElementById('cPost').value.trim()  || 'N/A';
+    const date  = new Date().toLocaleString('hi-IN', { timeZone: 'Asia/Kolkata' });
+
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email:       TO_EMAIL,
+      candidate_name: candidateName,
+      candidate_phone: phone,
+      applied_post:   post,
+      interview_date: date,
+      message: `Naya video interview aaya hai!\n\nNaam: ${candidateName}\nPhone: ${phone}\nPost: ${post}\nDate: ${date}\n\nRecording attachment mein attach hai.`,
+      attachment:     base64,
+      filename:       'interview_' + candidateName.replace(/\s+/g,'_') + '.webm',
+    });
+
+    clearInterval(prog);
+    pb.style.width = '100%';
+    setTimeout(() => { pw.style.display = 'none'; }, 1000);
+
+    document.getElementById('doneCard').style.display = 'block';
+    setStatus('✅ Email successfully bhej diya gaya! Shukriya.', 'ok');
+
+    // Stop camera
+    if (stream) stream.getTracks().forEach(t => t.stop());
+
+  } catch(err) {
+    clearInterval(prog);
+    pw.style.display = 'none';
+    console.error('EmailJS error:', err);
+    setStatus('⚠️ Email mein error aayi. Recording download ho gayi hai — manually bhej dein: sansthacentre@gmail.com', 'err');
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(blob);
+  });
+}
+
+// Hide config notice if keys are filled
+window.addEventListener('load', () => {
+  if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+    document.getElementById('cfgNotice').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
