@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Video Interview — Sansthacentre</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#eee;min-height:100vh}
+
+/* Landing Screen */
+#landing{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.land-card{background:#13131e;border:1px solid #2a2a40;border-radius:16px;padding:36px;max-width:480px;width:100%;text-align:center}
+.logo{font-size:40px;margin-bottom:16px}
+.land-card h1{font-size:22px;font-weight:600;margin-bottom:6px}
+.land-card p{font-size:14px;color:#777;line-height:1.6;margin-bottom:24px}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0}
+.role-btn{padding:18px 12px;border-radius:12px;border:1px solid #2a2a40;background:#1a1a2e;cursor:pointer;font-family:inherit;transition:all .2s;text-align:center}
+.role-btn:hover{border-color:#4a6cf7;background:#1a1a3e}
+.role-btn .icon{font-size:28px;display:block;margin-bottom:8px}
+.role-btn .title{font-size:14px;font-weight:600;color:#eee;display:block;margin-bottom:4px}
+.role-btn .desc{font-size:12px;color:#777;display:block;line-height:1.4}
+
+/* Main App */
+#app{display:none;flex-direction:column;height:100vh}
+
+/* Top Bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#13131e;border-bottom:1px solid #1e1e30;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.org{font-size:14px;font-weight:600;color:#eee}
+.role-tag{font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.tag-interviewer{background:#1a2a5e;color:#8ba4ff}
+.tag-candidate{background:#1a3a1a;color:#6fbf6f}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:12px;color:#777}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#555}
+.conn-dot.connected{background:#4caf50;animation:pulse 2s infinite}
+.conn-dot.connecting{background:#f5a623;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rec-indicator{display:none;align-items:center;gap:6px;background:#2a0a0a;border:1px solid #5a1a1a;border-radius:99px;padding:4px 12px;font-size:12px;color:#f44;font-weight:600}
+.rec-indicator.on{display:flex}
+.rdot{width:8px;height:8px;background:#f44;border-radius:50%;animation:pulse .8s infinite}
+
+/* Video Area */
+.video-area{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;background:#0a0a0f;overflow:hidden}
+.video-box{position:relative;background:#111118;border-radius:12px;overflow:hidden;border:1px solid #1e1e30}
+.video-box.speaking{border-color:#4a6cf7;box-shadow:0 0 0 2px rgba(74,108,247,.3)}
+video{width:100%;height:100%;object-fit:cover;display:block}
+.vid-label{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.75);color:#fff;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px}
+.vid-timer{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:4px 10px;border-radius:6px;font-family:monospace;display:none}
+.waiting-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111118}
+.waiting-overlay .wicon{font-size:36px;margin-bottom:10px;opacity:.4}
+.waiting-overlay p{font-size:13px;color:#555;text-align:center;line-height:1.5;padding:0 20px}
+
+/* Bottom Controls */
+.controls{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 20px;background:#13131e;border-top:1px solid #1e1e30;flex-shrink:0;flex-wrap:wrap}
+.ctrl-btn{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.ctrl-btn:hover{transform:scale(1.08)}
+.ctrl-btn:disabled{opacity:.35;cursor:not-allowed}
+.cb-normal{background:#1e1e30;color:#eee}
+.cb-muted{background:#3a1a1a;color:#f44}
+.cb-record{background:#1a2a1a;color:#4caf50}
+.cb-recording{background:#2a0a0a;color:#f44}
+.cb-end{background:#c0392b;color:#fff;width:56px;height:56px;font-size:20px}
+.ctrl-label{font-size:10px;color:#555;text-align:center;margin-top:3px}
+.ctrl-wrap{display:flex;flex-direction:column;align-items:center}
+
+/* Share Panel */
+.share-panel{background:#13131e;border-top:1px solid #1e1e30;padding:12px 20px;display:none;flex-shrink:0}
+.share-panel.show{display:block}
+.share-row{display:flex;align-items:center;gap:10px}
+.share-label{font-size:12px;color:#777;white-space:nowrap}
+.share-link{flex:1;background:#0a0a15;border:1px solid #2a2a40;border-radius:8px;padding:8px 12px;font-size:12px;color:#8ba4ff;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.copy-btn{padding:7px 14px;background:#4a6cf7;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.copy-btn:hover{background:#3a5ce7}
+
+/* Setup Screen */
+#setup{display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.setup-card{background:#13131e;border:1px solid #2a2a40;border-radius:16px;padding:32px;max-width:440px;width:100%}
+.setup-card h2{font-size:18px;font-weight:600;margin-bottom:6px}
+.setup-card p{font-size:13px;color:#777;margin-bottom:20px;line-height:1.5}
+label{font-size:12px;color:#777;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+input[type=text]{width:100%;padding:11px 14px;border-radius:8px;border:1px solid #2a2a40;font-size:14px;background:#0a0a15;color:#eee;font-family:inherit;outline:none;margin-bottom:16px}
+input:focus{border-color:#4a6cf7}
+.go-btn{width:100%;padding:13px;background:#4a6cf7;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.go-btn:hover{background:#3a5ce7}
+
+/* Questions Panel */
+.q-panel{background:#13131e;border-top:1px solid #1e1e30;padding:12px 20px;max-height:160px;overflow-y:auto;flex-shrink:0;display:none}
+.q-panel.show{display:block}
+.q-panel h4{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.q-item{display:flex;gap:8px;padding:7px 10px;border-radius:7px;margin-bottom:5px;font-size:13px;cursor:pointer;transition:background .15s}
+.q-item:hover{background:#1a1a2e}
+.q-item.active{background:#1a2040;border-left:2px solid #4a6cf7}
+.q-num{color:#4a6cf7;font-weight:700;font-size:11px;min-width:22px;padding-top:1px}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1e30;color:#eee;padding:10px 20px;border-radius:99px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* Ended screen */
+#ended{display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.ended-card{background:#13131e;border:1px solid #2a2a40;border-radius:16px;padding:36px;max-width:420px;width:100%;text-align:center}
+.ended-card .icon{font-size:48px;margin-bottom:16px}
+.ended-card h2{font-size:20px;font-weight:600;margin-bottom:8px}
+.ended-card p{font-size:14px;color:#777;line-height:1.6;margin-bottom:20px}
+.dl-btn{width:100%;padding:13px;background:#1e6b2e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px}
+.new-btn{width:100%;padding:11px;background:transparent;color:#777;border:1px solid #2a2a40;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit}
+
+@media(max-width:600px){
+  .video-area{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  .role-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="land-card">
+    <div class="logo">🎙️</div>
+    <h1>Live Video Interview</h1>
+    <p>Sansthacentre — Browser mein seedha connect karein, koi app install nahi</p>
+    <div class="role-grid">
+      <button class="role-btn" onclick="chooseRole('interviewer')">
+        <span class="icon">👔</span>
+        <span class="title">Interviewer</span>
+        <span class="desc">Main interview lunga aur link share karunga</span>
+      </button>
+      <button class="role-btn" onclick="chooseRole('candidate')">
+        <span class="icon">👤</span>
+        <span class="title">Candidate</span>
+        <span class="desc">Mujhe interview link mila hai</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- INTERVIEWER SETUP -->
+<div id="setup" style="display:none;flex">
+  <div class="setup-card">
+    <h2>👔 Interviewer Setup</h2>
+    <p>Apna naam bharein — phir aapko ek link milega jo candidate ko share karna hai</p>
+    <label>Aapka Naam</label>
+    <input type="text" id="iName" placeholder="e.g. Rahul Sir" />
+    <label>Candidate Ka Naam</label>
+    <input type="text" id="cName" placeholder="e.g. Priya Sharma" />
+    <button class="go-btn" onclick="startAsInterviewer()">🚀 Interview Room Banao</button>
+  </div>
+</div>
+
+<!-- CANDIDATE SETUP -->
+<div id="csetup" style="display:none;flex">
+  <div class="setup-card">
+    <h2>👤 Candidate Setup</h2>
+    <p>Apna naam bharein aur join karein</p>
+    <label>Aapka Naam</label>
+    <input type="text" id="candName" placeholder="Apna pura naam likhein" />
+    <button class="go-btn" onclick="joinAsCandidate()">📹 Interview Join Karein</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="org">Sansthacentre</span>
+      <span class="role-tag" id="roleTag"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="rec-indicator" id="recIndicator">
+        <div class="rdot"></div> REC
+      </div>
+      <div class="conn-status">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connText">Connecting...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Panel (interviewer only) -->
+  <div class="share-panel" id="sharePanel">
+    <div class="share-row">
+      <span class="share-label">📎 Candidate ko bhejo:</span>
+      <div class="share-link" id="shareLink">—</div>
+      <button class="copy-btn" onclick="copyLink()">Copy</button>
+      <button class="copy-btn" style="background:#1a5c1a" onclick="whatsappShare()">WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- Videos -->
+  <div class="video-area">
+    <div class="video-box" id="myBox">
+      <video id="myVideo" autoplay muted playsinline></video>
+      <div class="vid-label" id="myLabel">Aap</div>
+      <div class="vid-timer" id="callTimer">00:00</div>
+    </div>
+    <div class="video-box" id="remoteBox">
+      <div class="waiting-overlay" id="waitingOverlay">
+        <div class="wicon">👤</div>
+        <p id="waitingText">Candidate ka intezaar hai...<br>Neeche link share karein</p>
+      </div>
+      <video id="remoteVideo" autoplay playsinline style="display:none"></video>
+      <div class="vid-label" id="remoteLabel">—</div>
+    </div>
+  </div>
+
+  <!-- Questions Panel (interviewer only) -->
+  <div class="q-panel" id="qPanel">
+    <h4>Interview Questions — Click karein poochne ke liye</h4>
+    <div class="q-item" onclick="askQuestion(this, 0)"><span class="q-num">Q1</span><span>Apne aap ke baare mein batayein — naam, shiksha aur kaam ka anubhav.</span></div>
+    <div class="q-item" onclick="askQuestion(this, 1)"><span class="q-num">Q2</span><span>Aap is sanstha mein kyon kaam karna chahte hain?</span></div>
+    <div class="q-item" onclick="askQuestion(this, 2)"><span class="q-num">Q3</span><span>Aapki koi badi uplabdhi batayein.</span></div>
+    <div class="q-item" onclick="askQuestion(this, 3)"><span class="q-num">Q4</span><span>Aapki sabse badi kamzori kya hai?</span></div>
+    <div class="q-item" onclick="askQuestion(this, 4)"><span class="q-num">Q5</span><span>Aap 5 saal baad khud ko kahan dekhte hain?</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn cb-normal" id="micBtn" onclick="toggleMic()">🎤</button>
+      <div class="ctrl-label">Mic</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn cb-normal" id="camBtn" onclick="toggleCam()">📷</button>
+      <div class="ctrl-label">Camera</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn cb-record" id="recBtn" onclick="toggleRecording()">⏺</button>
+      <div class="ctrl-label" id="recLabel">Record</div>
+    </div>
+    <div class="ctrl-wrap" id="qBtnWrap" style="display:none">
+      <button class="ctrl-btn cb-normal" onclick="toggleQuestions()">📋</button>
+      <div class="ctrl-label">Questions</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn cb-end" onclick="endCall()">📵</button>
+      <div class="ctrl-label">End</div>
+    </div>
+  </div>
+</div>
+
+<!-- ENDED -->
+<div id="ended">
+  <div class="ended-card">
+    <div class="icon">✅</div>
+    <h2>Interview Complete!</h2>
+    <p id="endedMsg">Interview khatam hua. Recording download karein.</p>
+    <button class="dl-btn" id="dlBtn" onclick="downloadRec()" style="display:none">⬇ Recording Download Karein</button>
+    <button class="new-btn" onclick="location.reload()">🔄 Naya Interview</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+let peer = null, conn = null, call = null;
+let localStream = null, remoteStream = null;
+let role = '';           // 'interviewer' | 'candidate'
+let myName = '', remoteName = '';
+let micOn = true, camOn = true;
+let isRecording = false;
+let mediaRecorder = null, recChunks = [];
+let callTimerInterval = null, callSecs = 0;
+let peerId = null;
+
+// ─── Role Selection ───────────────────────────────────────
+function chooseRole(r) {
+  role = r;
+  document.getElementById('landing').style.display = 'none';
+  if (r === 'interviewer') {
+    document.getElementById('setup').style.display = 'flex';
+  } else {
+    // Check URL for peer ID
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('room');
+    if (pid) {
+      document.getElementById('csetup').style.display = 'flex';
+      window._targetPeer = pid;
+    } else {
+      showToast('❌ Valid interview link nahi hai!');
+      setTimeout(() => location.reload(), 2000);
+    }
+  }
+}
+
+// ─── Interviewer Start ────────────────────────────────────
+async function startAsInterviewer() {
+  myName = document.getElementById('iName').value.trim() || 'Interviewer';
+  remoteName = document.getElementById('cName').value.trim() || 'Candidate';
+  document.getElementById('setup').style.display = 'none';
+  await initApp();
+}
+
+// ─── Candidate Join ───────────────────────────────────────
+async function joinAsCandidate() {
+  myName = document.getElementById('candName').value.trim() || 'Candidate';
+  document.getElementById('csetup').style.display = 'none';
+  await initApp();
+  // Connect to interviewer
+  setTimeout(() => connectToPeer(window._targetPeer), 1500);
+}
+
+// ─── Init App ─────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('app').style.display = 'flex';
+
+  // Role tag
+  const tag = document.getElementById('roleTag');
+  tag.textContent = role === 'interviewer' ? '👔 Interviewer' : '👤 Candidate';
+  tag.className = 'role-tag ' + (role === 'interviewer' ? 'tag-interviewer' : 'tag-candidate');
+
+  document.getElementById('myLabel').textContent = myName + ' (Aap)';
+
+  // Show questions + share for interviewer
+  if (role === 'interviewer') {
+    document.getElementById('sharePanel').classList.add('show');
+    document.getElementById('qBtnWrap').style.display = 'flex';
+    document.getElementById('qPanel').classList.add('show');
+    document.getElementById('waitingText').textContent = 'Candidate ka intezaar...\nNeeche link share karein';
+  } else {
+    document.getElementById('waitingText').textContent = 'Interviewer se connect ho raha hai...';
+  }
+
+  // Get camera
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('myVideo').srcObject = localStream;
+  } catch(e) {
+    showToast('❌ Camera/mic nahi mili');
+  }
+
+  // Init PeerJS
+  peer = new Peer(undefined, {
+    host: '0.peerjs.com', port: 443, secure: true,
+    config: { iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]}
+  });
+
+  peer.on('open', id => {
+    peerId = id;
+    setConn('connecting', 'Taiyaar — intezaar mein...');
+    if (role === 'interviewer') {
+      const url = window.location.href.split('?')[0] + '?room=' + id;
+      document.getElementById('shareLink').textContent = url;
+      document.getElementById('shareLink').dataset.url = url;
+    }
+  });
+
+  peer.on('call', incomingCall => {
+    call = incomingCall;
+    call.answer(localStream);
+    call.on('stream', stream => handleRemoteStream(stream));
+    call.on('close', () => handleDisconnect());
+    setConn('connected', remoteName + ' connected!');
+    startCallTimer();
+    document.getElementById('waitingOverlay').style.display = 'none';
+    document.getElementById('remoteVideo').style.display = 'block';
+    document.getElementById('callTimer').style.display = 'block';
+  });
+
+  peer.on('connection', c => {
+    conn = c;
+    conn.on('data', handleData);
+  });
+
+  peer.on('error', e => {
+    console.error(e);
+    setConn('', 'Connection error');
+    showToast('Connection mein problem: ' + e.type);
+  });
+}
+
+// ─── Connect (Candidate → Interviewer) ───────────────────
+function connectToPeer(targetId) {
+  if (!peer) return;
+  setConn('connecting', 'Connect ho raha hai...');
+
+  // Data channel
+  conn = peer.connect(targetId, { reliable: true });
+  conn.on('open', () => {
+    conn.send({ type: 'hello', name: myName });
+  });
+  conn.on('data', handleData);
+
+  // Video call
+  call = peer.call(targetId, localStream);
+  call.on('stream', stream => {
+    handleRemoteStream(stream);
+    setConn('connected', 'Connected!');
+    startCallTimer();
+    document.getElementById('waitingOverlay').style.display = 'none';
+    document.getElementById('remoteVideo').style.display = 'block';
+    document.getElementById('callTimer').style.display = 'block';
+  });
+  call.on('close', () => handleDisconnect());
+  call.on('error', e => { showToast('Call error: ' + e); });
+}
+
+// ─── Remote Stream ────────────────────────────────────────
+function handleRemoteStream(stream) {
+  remoteStream = stream;
+  document.getElementById('remoteVideo').srcObject = stream;
+  document.getElementById('remoteLabel').textContent = remoteName || 'Remote';
+}
+
+// ─── Data Channel ─────────────────────────────────────────
+function handleData(data) {
+  if (data.type === 'hello') {
+    remoteName = data.name;
+    document.getElementById('remoteLabel').textContent = data.name;
+    showToast('✅ ' + data.name + ' join ho gaya!');
+    setConn('connected', data.name + ' connected!');
+    // Send back our name
+    if (conn && conn.open) conn.send({ type: 'hello', name: myName });
+  }
+}
+
+// ─── Controls ────────────────────────────────────────────
+function toggleMic() {
+  micOn = !micOn;
+  localStream.getAudioTracks().forEach(t => t.enabled = micOn);
+  const btn = document.getElementById('micBtn');
+  btn.textContent = micOn ? '🎤' : '🔇';
+  btn.className = 'ctrl-btn ' + (micOn ? 'cb-normal' : 'cb-muted');
+  showToast(micOn ? 'Mic on' : 'Mic off');
+}
+
+function toggleCam() {
+  camOn = !camOn;
+  localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+  const btn = document.getElementById('camBtn');
+  btn.textContent = camOn ? '📷' : '🚫';
+  btn.className = 'ctrl-btn ' + (camOn ? 'cb-normal' : 'cb-muted');
+  showToast(camOn ? 'Camera on' : 'Camera off');
+}
+
+function toggleRecording() {
+  if (!isRecording) startRecording();
+  else stopRecording();
+}
+
+function startRecording() {
+  // Record both streams using canvas mixing
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280; canvas.height = 360;
+  const ctx = canvas.getContext('2d');
+
+  const myVid = document.getElementById('myVideo');
+  const remVid = document.getElementById('remoteVideo');
+
+  // Mix audio
+  const audioCtx = new AudioContext();
+  const dest = audioCtx.createMediaStreamDestination();
+  if (localStream) {
+    const src1 = audioCtx.createMediaStreamSource(localStream);
+    src1.connect(dest);
+  }
+  if (remoteStream) {
+    const src2 = audioCtx.createMediaStreamSource(remoteStream);
+    src2.connect(dest);
+  }
+
+  // Draw loop
+  const draw = () => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 1280, 360);
+    try { ctx.drawImage(myVid, 0, 0, 640, 360); } catch(e) {}
+    try { ctx.drawImage(remVid, 640, 0, 640, 360); } catch(e) {}
+    if (isRecording) requestAnimationFrame(draw);
+  };
+  draw();
+
+  const canvasStream = canvas.captureStream(25);
+  const combined = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...dest.stream.getAudioTracks()
+  ]);
+
+  recChunks = [];
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+    ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+  mediaRecorder = new MediaRecorder(combined, { mimeType: mime });
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  mediaRecorder.start(1000);
+
+  isRecording = true;
+  document.getElementById('recBtn').textContent = '⏹';
+  document.getElementById('recBtn').className = 'ctrl-btn cb-recording';
+  document.getElementById('recLabel').textContent = 'Stop';
+  document.getElementById('recIndicator').classList.add('on');
+  showToast('⏺ Recording shuru ho gayi!');
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  isRecording = false;
+  document.getElementById('recBtn').textContent = '⏺';
+  document.getElementById('recBtn').className = 'ctrl-btn cb-record';
+  document.getElementById('recLabel').textContent = 'Record';
+  document.getElementById('recIndicator').classList.remove('on');
+  showToast('Recording save ho rahi hai...');
+}
+
+function downloadRec() {
+  if (!recChunks.length) { showToast('Koi recording nahi'); return; }
+  const blob = new Blob(recChunks, { type: 'video/webm' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date().toISOString().slice(0,10);
+  a.download = 'interview_' + (remoteName||'candidate').replace(/\s+/g,'_') + '_' + d + '.webm';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function toggleQuestions() {
+  document.getElementById('qPanel').classList.toggle('show');
+}
+
+function askQuestion(el, idx) {
+  document.querySelectorAll('.q-item').forEach(q => q.classList.remove('active'));
+  el.classList.add('active');
+  showToast('Q' + (idx+1) + ' — Sawaal select hua');
+}
+
+// ─── End Call ────────────────────────────────────────────
+function endCall() {
+  if (isRecording) stopRecording();
+  clearInterval(callTimerInterval);
+  if (call) call.close();
+  if (conn) conn.close();
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('ended').style.display = 'flex';
+  const dur = document.getElementById('callTimer').textContent;
+  document.getElementById('endedMsg').textContent =
+    'Interview duration: ' + dur + '. Recording download karein.';
+  if (recChunks.length) document.getElementById('dlBtn').style.display = 'block';
+}
+
+function handleDisconnect() {
+  setConn('', 'Disconnected');
+  showToast('⚠️ Connection toot gayi');
+}
+
+// ─── Timer ───────────────────────────────────────────────
+function startCallTimer() {
+  callSecs = 0;
+  callTimerInterval = setInterval(() => {
+    callSecs++;
+    const m = String(Math.floor(callSecs/60)).padStart(2,'0');
+    const s = String(callSecs%60).padStart(2,'0');
+    document.getElementById('callTimer').textContent = m+':'+s;
+  }, 1000);
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+function setConn(state, text) {
+  const dot = document.getElementById('connDot');
+  dot.className = 'conn-dot' + (state ? ' '+state : '');
+  document.getElementById('connText').textContent = text;
+}
+
+function copyLink() {
+  const url = document.getElementById('shareLink').dataset.url;
+  navigator.clipboard.writeText(url).then(() => showToast('✅ Link copy ho gaya!'));
+}
+
+function whatsappShare() {
+  const url = document.getElementById('shareLink').dataset.url;
+  const msg = 'Namaste! Aapka video interview link: ' + url + '\n\nBrowser mein khoolein aur "Candidate" select karein.';
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Auto-detect candidate from URL
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('room')) {
+    // Auto select candidate
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('csetup').style.display = 'flex';
+    window._targetPeer = params.get('room');
+    role = 'candidate';
+  }
+});
+</script>
+</body>
+</html>
